@@ -306,3 +306,93 @@ Generative model的好处：
 但是手动进行feature transformation并不总是容易的，因此我们可以引入深度学习，令神经网络进行feature transformation：
 
 ![image-20200914211054630](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200914211054630.png)
+
+# Deep Learning
+
+## 1.深度学习简介
+
+### 1.1全连接神经网络示例
+
+![image-20200915201646463](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200915201646463.png)
+
+### 1.2使用深度学习的好处
+
+我们知道，在机器学习中，特征工程（Feature engineering）是非常重要的，我们需要利用特征工程，为模型找到合适的参数，使模型表现得更好。这对于不复杂的模型，或者我们熟知工作方式的模型是合适的。但对于特征较多，或者我们不太了解工作机制（比如人怎么进行图像的识别）的模型时，特征工程是困难的。此时我们可以引入深度学习，令深度神经网络帮助我们进行特征提取：
+
+![image-20200915202040766](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200915202040766.png)
+
+如上图所示，我们可以将深度神经网络看成三个部分：数据输入(Input Layer)、特征提取(Hidden Layer)、分类输出(Output Layer)
+
+### 1.3深度学习的训练过程
+
+![image-20200915202902013](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200915202902013.png)
+
+由上图可以看到，深度学习训练的三个Step与机器学习相同，都是构建模型(function set)->判定function好坏->优化得到最好的function
+
+区别在于深度学习构建function set的方式与机器学习不同：
+
+![image-20200915203050879](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200915203050879.png)
+
+以识别手写数据集为例，在深度学习中，通过构建不同结构的神经网络，我们可以得到不同的function set。
+
+对于优化的过程，分类问题我们同样可以使用与逻辑回归相同的交叉熵损失，使用梯度下降或者反向传播的方式进行优化。
+
+### 1.4为什么Deep
+
+已经证明，仅有一个隐藏层的神经网络就可以表示出所有的函数。那么我们为什么还要设计层数很多的深度网络。
+
+**事实上，深度学习网络是一个模块化(Modularization)的网络**
+
+以做长短头发男生女生分类为例：
+
+![image-20200915204923812](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200915204923812.png)
+
+我们可以看到，上述例子中，我们有很少的长发男生的数据，那么在进行训练时，由于缺少数据，我们模型对长发男生的分类效果就会很差
+
+**模组化：**
+
+我们不直接对原问题进行分类，我们先将原问题切成小的问题（划分成小的模组），比如先区分是男生还是女生以及是长头发还是短头发，而后再根据这些小的模组的分类结果，完成原问题的分类
+
+![image-20200915205340917](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200915205340917.png)
+
+这样，在训练小的模组时，每个模组都有足够的数据进行训练。这就使最终的分类结果得到很大的改进。
+
+![image-20200915205640467](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200915205640467.png)
+
+直观理解：如果只有一层，同层的神经元之间不能进行信息共享。而在多层中，将原来大的分类问题划分成许多小的分类问题，每一层解决一个简单的分类。后面层可以共用前面层的结果，使数据的利用率更高，模型准确性更好。
+
+### 1.5反向传播(Backpropagation)
+
+深度学习网络可以抽象表示为下图:
+
+![image-20200915211515097](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200915211515097.png)
+
+定义损失函数：
+$$
+L(\theta)=\sum^N_{n=1}l^n(\theta)
+$$
+![image-20200915211737439](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200915211737439.png)
+
+以上图为例演示优化过程中，$L$对$w_1$求梯度
+$$
+\frac{\partial l}{\partial w_1}=\frac{\partial z}{\partial w_1}\cdot \frac{\partial l}{\partial z}=x_1\cdot \frac{\partial l}{\partial z}=x_1\cdot\frac{\partial l}{\partial a}\cdot\frac{\partial a}{\partial z}=x_1\cdot \sigma'(z)\cdot\frac{\partial l}{\partial a}
+$$
+而
+$$
+\frac{\partial l}{\partial a}=\frac{\partial l}{\partial z'}\cdot\frac{\partial z'}{\partial a}+\frac{\partial l}{\partial z''}\cdot\frac{\partial z''}{\partial a}
+$$
+则
+$$
+\frac{\partial l}{\partial z}=\sigma'(z)\cdot[w_3\cdot\frac{\partial l}{\partial z'}+w_4\cdot\frac{\partial l}{\partial z''}]
+$$
+此时，只有$w_3\cdot\frac{\partial l}{\partial z'}$与$w_4\cdot\frac{\partial l}{\partial z''}$未知。但我们可以用于计算$\frac{\partial l}{\partial z}$相同的方式，使用后续的链式法则进行计算。
+
+由上述公式，我们可以抽象出来一个反向计算的神经网络：
+
+![image-20200915213243647](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200915213243647.png)
+
+对于正向传播的最后一层(output layer)，方向传播的第一层，计算方法是：
+
+![image-20200915213415655](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200915213415655.png)
+
+当这一层计算完毕，即可从反向的第一层向前计算，最终获得所有$L$对参数$w_i$的梯度$\frac{\partial l}{\partial w_i}$
