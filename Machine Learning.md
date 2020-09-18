@@ -459,3 +459,167 @@ filter中的内容，就是我们要训练的参数。
 对于全连接神经网络，我是这样理解的：
 
 深度神经网络通过模块化（modulation）将大问题分解成一个个小问题。前面的卷积网络是将一个大的图片识别任务划分成了许多小的识别任务，比如通过训练许多filter分别探测鸟的喙，翅膀等。而在全连接神经网络中，通过将前面的这些modulation进行整合，最终完成对原图片的识别任务。
+
+### 2.6两个例子
+
+#### 2.6.1语音识别
+
+![image-20200918085444407](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918085444407.png)
+
+语音识别通常是识别一定时间内的语音频率。因此主要特征是一段时间宽度内不同频段的信号。由于不同频率上可能会出现相似的波形，因此这时我们通常设置filter的宽度与识别图片宽度相同，而后逐次向下移动，探查不同频段之间有没有相似的特征。
+
+#### 2.6.2文本识别
+
+![image-20200918090511105](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918090511105.png)
+
+而对于文本识别，由于相似的特征更可能在横向上出现（比如一个句子中有两个相同的字），通常我们是使filter的高度与图片相同，每次横向移动一定单位。
+
+## 3.深度学习技巧
+
+### 3.1深度学习判断改进模型的方法
+
+![image-20200918091809233](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918091809233.png)
+
+欠拟合：在训练集上表现不好
+
+方法：
+
+1. 寻找新的激活函数
+2. 采用动态学习率
+
+过拟合：在训练集上表现很好，在测试集上表现很差
+
+方法：
+
+1. 提前结束训练
+2. 正则化
+3. Dropout
+
+另外，不能单纯根据测试集的结果判断是否过拟合。比如一个20-layer的和56-layer的神经网络。如果testing error上56-layer的大，还需要去看看training error，如果也是56-layer的大，那就说明不是过拟合。这也说明并不一定更深的网络训练效果更好。训练过程中有很多因素会导致训练效果变差，比如local minimum。
+
+### 3.2激活函数
+
+#### 3.2.1梯度消失
+
+![image-20200918095940920](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918095940920.png)
+
+在使用sigmoid function作为激活函数时，我们经常会发现，靠近输出层的神经元有较大的梯度，很快就收敛了。但与此同时，靠近输出层的神经元由于梯度很小，更新慢，还几乎处于随机参数状态。这就导致模型训练效果很差。
+
+导致此问题的原因：
+
+![image-20200918100139112](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918100139112.png)
+
+由于sigmoid function将$[-\infty,\infty]$的数据压缩到$[0,1]$，因此靠近输入层的参数变化$\Delta w$只能对输出层产生较小的影响。这就使靠近输入层的参数训练较慢。
+
+#### 3.2.2ReLU激活函数
+
+![image-20200918101141607](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918101141607.png)
+
+ReLU激活函数更加简单，训练迅速。
+
+使用ReLU不会出现sigmoid导致的梯度消失问题。
+
+一些变种：
+
+![image-20200918102933505](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918102933505.png)
+
+#### 3.2.3Maxout激活函数
+
+![image-20200918103014673](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918103014673.png)
+
+Maxout的功能更加强大，其能完成ReLU完成的功能（ReLU是Maxout的一个特例）：
+
+![image-20200918103114376](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918103114376.png)
+
+Maxout可以拟合出任意分段线性凸函数：
+
+![image-20200918103243340](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918103243340.png)
+
+### 3.3可调整学习率
+
+#### 3.3.1Adagrad
+
+在回归中总结过，每个参数有自己的学习率，学习率的衰减受前面训练轮次累加梯度影响。
+
+![image-20200918103750297](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918103750297.png)
+
+#### 3.3.2RMSProp
+
+Adagrad解决的是不同参数的梯度变化速率不同的问题。但对于一个参数，是假定其梯度变化是均匀的。但对于下述例子，该假设不成立：
+
+![image-20200918104153437](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918104153437.png)
+
+此时我们引入RMSProp解决上述问题。
+
+![image-20200918104456507](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918104456507.png)
+
+#### 3.3.3Momentun
+
+Momentum不是一种具体的学习率算法，它是将物理中惯性的思想引入了参数更新。在每次更新参数时，不仅需要考虑当前的梯度，还要考虑由之前梯度更新积累的惯性。最终参数的更新方向是当前梯度与momentum的矢量和。
+
+![image-20200918104808041](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918104808041.png)
+
+$v^i$的计算方式：
+
+![image-20200918105334336](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918105334336.png)
+
+对这种方法带来的优势的直观理解：
+
+![image-20200918105441017](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918105441017.png)
+
+在上图中，对于鞍点和local minimum，如果使用常规的参数更新，由于此处的梯度为0，则梯度不再惊醒更新。而由于我们有momentum的存在，就**有可能**冲出这些梯度为0的点，找到global minimum。但这只是给了我们冲出鞍点和local minimum的希望，并不保证一定能找到global minimum。
+
+#### 3.3.4Adam
+
+Adam=RMSProp+Momentum
+
+![image-20200918110034078](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918110034078.png)
+
+### 3.4正则化
+
+[L1，L2正则化详细解释]: https://blog.csdn.net/jinping_shi/article/details/52433975
+
+以下内容为直观理解，详细内容查看上述博客。
+
+#### 3.4.1 $L2$正则化
+
+![image-20200918160126643](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918160126643.png)
+
+由更新公式可得，每次参数更新前先乘一个接近于1的数，使参数越来越接近0.同时，参数越大，每次相乘后参数向0移动的方向就越多。最终前面这一项会和后面这一项保持平衡，使训练出的模型参数偏小。**最终使整个模型更加平滑。**
+
+
+
+#### 3.4.2 $L1$正则化
+
+![image-20200918161323863](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918161323863.png)
+
+观察$L1$正则化后的参数更新公式，每次参数都向0多走$\eta \lambda sgn(w^t)$。与$L2$相比，其每次变化是固定的。而$L2$则是大参数变化多，小参数变化少。**因此$L1$正则化训练出的模型是稀疏(sparse)的。**
+
+### 3.5Dropout
+
+Dropout的思想是在每轮训练中，每个神经元以一定机率$p$被丢弃，不参加本轮训练。
+
+![image-20200918150334407](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918150334407.png)
+
+在dropout后，相当于本轮训练的网络结构发生了改变。
+
+需要注意的是，网络训练好后，在**测试集**上测试时，所有网络参数都要乘$1-p$
+
+![image-20200918151341999](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918151341999.png)
+
+原因：
+
+![image-20200918151428107](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918151428107.png)
+
+Dropout是一种Ensemble的思想：
+
+![image-20200918152549748](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918152549748.png)
+
+![image-20200918152559308](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918152559308.png)
+
+Ensemble是将原数据集划分成若干集合，分别训练一个神经网络。在进行测试时，将数据分别输入不同神经网络，对输出取平均。
+
+Dropout也是相似的思想，也可以看作每次训练是使用一个mini-batch数据训练一个神经网络。不同的是一些参数在不同轮次中对应的网络是共享的。
+
+![image-20200918154058432](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918154058432.png)
+
