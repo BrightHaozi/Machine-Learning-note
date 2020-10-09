@@ -623,3 +623,92 @@ Dropout也是相似的思想，也可以看作每次训练是使用一个mini-ba
 
 ![image-20200918154058432](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20200918154058432.png)
 
+# Explainable Machine Learning
+
+以识别猫的分类器为例，**可解释的机器学习**主要分为两种：
+
+1. Local Explanation(局部可解释性)
+   目的：Why do you think this image is a cat?
+2. Global Explanation(全局可解释性)
+   目的：What do you think a "cat" looks like?
+
+## 1. 不同模型的解释性
+
+一些模型具有较强的解释性。
+
+1. Linear model线性模型)
+   线性模型我们可以通过权重的大小，直接判断哪个特征对模型的影响更大。
+   但线性模型的拟合能力较弱。
+2. Decision Tree(决策树)
+   我们可以直接通过决策树的分支节点判断特征对模型的影响。
+   决策树兼具有强的解释性和拟合能力。
+
+通常，我们使用可解释性强的模型来解释可解释差的模型。比如，深度神经网络具有很强的拟合能力，但其可解释性很差，会给使用人员带来一些困扰。此时我们可以使用一些可解释性强的模型进行解释。
+
+## 2. Local Explanation
+
+e.g.Why do you think this image is ...
+
+### 2.1 Basic Idea
+
+![image-20201009214415520](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201009214415520.png)
+
+一个值观的想法，对于我们要识别的一个图片$x$，将其划分成多个components，每次对components中的一个分量进行微调，调整后对输出结果影响大的，就是决定该图片分类结果的重要因素。
+
+基于机上方法，我们将一个输入的图片看作$\{x_1,...,x_n,...,x_N \}$，每次对一个分量$x_i$进行微调$x_n+\Delta x$，则输出由$y_k$变为$y_k+\Delta y$。我们可以通过判断$|\frac{\Delta y}{\Delta x}|$的大小来判断分量$x_i$对该图像识别的影响。
+
+在实际应用中我们通过$|\frac{\partial y_k}{\partial x_n}|$来判断$x$的对图片输出为某一类别的影响。但这不总是对的。
+
+e.g.
+
+![image-20201009215903761](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201009215903761.png)
+
+大象的鼻子长度是判断一张图片中有大象的关键因素，但当大象鼻子非常长时，该特征对应的梯度可能会很小。
+
+## 3. Global Explanation: Explain the whole model
+
+e.g. What do you think a ... looks like?
+
+### 3.1 **Activation Minimization** 
+
+在卷积神经网络中，以图片分类问题为例。对于一个训练好的网络，我们想要知道什么情况下会使输出某类别$y_i$的概率最大。此时，我们可以调整输入$x$，找到使$y_i$最大的$x^*$，即：
+$$
+x^{*}=\arg \max _{x} y_{i}
+$$
+得到会使网络认为是$y_i$的图片。
+
+![image-20201009221436082](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201009221436082.png)
+
+但如上图所示，通常结果是人类所不能理解的，我们可以加一些约束项使输入结果尽可能便于辨认：
+
+![image-20201009221524213](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201009221524213.png)
+
+### 3.2 Constraint from Generator 
+
+![image-20201009222152965](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201009222152965.png)
+
+对于本方法，我们首先拥有一个训练好的generator和classifier，而后固定generator和classifier。通过调整generator的输入$z$，找到满足
+$$
+z^{*}=\arg \max _{z} y_{i}
+$$
+的$z^*$。再将其放入generator生成$x^*$，即
+$$
+x^*=G(z^*)
+$$
+即可得到模型在模型看来，输入最大$y_i$的最大概率时对应的$x^*$。即回答了从模型的角度，“What do you think a ... looks like?”的问题。
+
+## 4. Using a Model to Explain Another
+
+### 4.1 使用线性模型解释神经网络
+
+![image-20201009223348596](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201009223348596.png)
+
+使用线性模型存在的问题是，线性模型的函数空间太小，拟合能力弱。无法正确模仿要解释的模型。
+
+但可以使用线性模型去模仿一个局部的区域
+
+#### 4.1.1 Local Interpretable Model-Agnostic Explanations (LIME)
+
+![image-20201009223804943](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201009223804943.png)
+
+在我们想要模仿数据点周围进行取样，利用取样样本训练一个线性模型并用其解释该区域内的复杂模型特点。
