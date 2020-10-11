@@ -712,3 +712,161 @@ $$
 ![image-20201009223804943](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201009223804943.png)
 
 在我们想要模仿数据点周围进行取样，利用取样样本训练一个线性模型并用其解释该区域内的复杂模型特点。
+
+在图像识别中使用LIME：
+
+1. Given a data point you want to explain
+2. Samble at the nearby
+   ![image-20201010085919958](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201010085919958.png)
+
+3. Fit with linear (or interpretable) model
+   ![image-20201010090012480](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201010090012480.png)
+
+4. Interpret the model you learned
+   ![image-20201010090151152](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201010090151152.png)
+
+### 4.2 Decision Tree
+
+我们知道，决策树在有很好的解释性的同时，也有很强的拟合能力。因此我们可以用决策树来模仿待解释模型。
+
+![image-20201010090427277](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201010090427277.png)
+
+但同时，并不是所有的决策树都有很好的解释性：
+
+![image-20201010090501024](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201010090501024.png)
+
+如上图所示，当我们的决策树深度较深，或者使用森林时，决策树模型的解释性同样很差。
+
+因此，我们引入$O(T_\theta)$来表示决策树的复杂度(e.g. average depth of $T_\theta$)
+
+在我们训练决策树模型时，加入一项$O(T_\theta)$，来尽可能使训练出的决策树模型复杂度较小。
+
+![image-20201010090831445](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201010090831445.png)
+
+# Attack ML Models
+
+研究机器学习模型攻击与防御的动机：
+
+1. 我们不仅仅需要在实验室中部署机器学习模型，也需要在现实世界中部署模型。
+2. 分类器在工作"大部分时间"具有好的鲁棒性是不够的。
+3. 我们希望分类器对于恶意欺骗分类器的输入有较好的鲁棒性。（应对人类的欺骗）
+
+## 1. Attack
+
+### 1.1 攻击的目的
+
+![image-20201011100148375](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201011100148375.png)
+
+以上图为例，我们想要对原图片加入一些噪声，使分类器不能正确识别出原图像。
+
+### 1.2 Loss Function for Attack
+
+![image-20201011100435645](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201011100435645.png)
+
+#### 1.2.1 Training
+
+$$
+L_{train}(\theta)=C(y^0,y^{true})
+$$
+
+在我们训练神经网络时，通常以上述损失函数进行训练。
+
+#### 1.2.2 Non_targeted Attack
+
+无目的性的攻击：
+$$
+L(x')=-C(y',y^{true})
+$$
+目的是让我们加噪声后的输入$x'$，经过神经网络后输出的结果距离加噪声前的输出结果越远越好。
+
+#### 1.2.3 Targeted Attack
+
+有目的性的攻击：
+$$
+L(x')=-C(y',y^{true})+C(y',y^{false})
+$$
+与1.2.2相比，除了尽可能与加噪声前的输出结果越远越好之外，我们又增加了第二项，希望其与我们目标让其变成的label$y^{false}$越近越好。
+
+#### 1.2.4 Constraint
+
+$$
+d(x^0,x') \le \epsilon
+$$
+
+通过增加一项约束，使加噪声后的输入与原输入距离不要太远。防止因差距太大被发现。
+
+常用的限制函数：
+
+1. L2-norm
+   $d(x^0,x')=||x^0-x'||_2=(\Delta x_1)^2+(\Delta x_2)^2+(\Delta x_1)^3...$
+2. L-infinity
+   $d(x^0,x')=||x^0-x'||_{\infty}=\max\{\Delta x_1,\Delta x_2,\Delta x_3,...\}$
+
+![image-20201011103900522](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201011103900522.png)
+
+我们更常用L-infinity来进行衡量。
+
+### 1.3 How to Attack
+
+就像训练神经网络一样，只是我们现在神经网络的参数$\theta$是固定的，转而训练输入$x'$。
+$$
+x^*=arg \min_{d(x^0,x')\le \epsilon}L(x')
+$$
+找到能使损失在$d$约束下能使损失函数$L$最小的输入$x^*$
+
+![image-20201011104748862](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201011104748862.png)
+
+![image-20201011104839984](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201011104839984.png)
+
+上图中，蓝色的$x^t$是执行梯度下降后$x$落到的位置，如果离开了限制函数$d$的区间，则根据采用的$d$找到限制范围内离$x^t$最近的点。
+
+**一个问题：**
+
+有时我们会发现，训练出来的图片，人看起来几乎没有区别，但机器却会将其识别错误。而人手动加噪声，即使人一眼就能看出来加了噪声，但对机器识别结果却没有很大影响。这是为什么呢？
+
+![image-20201011105849191](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201011105849191.png)
+
+如图所示，通常图片分类识别都是在很高维度上进行训练。可能在某些维度上，其鲁棒性较好，进行一定的波动对识别效果影响不大。而在一些维度上，轻微的扰动就会对结果产生很大的影响。
+
+### 1.4 White Box v.s. Black Box
+
+#### 1.4.1 White Box Attack
+
+在上述的工作中，我们都是固定了神经网络的参数$\theta$去优化$x'$。为了能够攻击，我们需要事先知道神经网络的参数$\theta$。因此，以上工作都称为白盒攻击。
+
+我们可能会想，在实际应用中，我们通常是向用户提供API，用户无法知道模型的参数。那么我们的模型是不是安全的呢？
+
+答案是否定的，因为我们可以进行黑盒攻击。
+
+#### 1.4.2 Black Box Attack
+
+![image-20201011112404785](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201011112404785.png)
+
+如果我们有目标网络的训练数据，那么我们可以自己训练一个神经网络进行攻击。
+
+如果没有，那我们可以制造大量的数据输入目标网络并得到网络的输出结果。我们有了输入及其对应的输出，就可以将其作为训练集，再自己训练一个网络。
+
+## 2. Defense
+
+权值正则化，dropout，模型集成是无法防御对抗性攻击的。
+
+两种类型的防御：
+
+1. Passive defense：不修改模型，找到被附加噪音的图片。
+2. Proactive defense：训练一个对抗攻击的健壮模型
+
+### 2.1 Passive Defense
+
+![image-20201011163933183](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201011163933183.png)
+
+在图片输入后，首先将图片经过一个过滤层(Filter)，对图片进行平滑处理，减少恶意添加的噪声对神经网络识别结果的影响。
+
+### 2.2 Proactive Defense
+
+![image-20201011170418598](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201011170418598.png)
+
+主动防御的精神就是找出漏洞并补起来。
+
+在模型训练的过程中，我们就使用相关的攻击算法，将其加入到模型训练。这样训练好的模型就可以抵御这些算法的攻击。
+
+问题：如果在实际应用中遇到了使用不同算法进行的攻击，模型仍然会做出错误判断。
