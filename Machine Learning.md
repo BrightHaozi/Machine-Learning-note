@@ -870,3 +870,92 @@ $$
 在模型训练的过程中，我们就使用相关的攻击算法，将其加入到模型训练。这样训练好的模型就可以抵御这些算法的攻击。
 
 问题：如果在实际应用中遇到了使用不同算法进行的攻击，模型仍然会做出错误判断。
+
+# Network Compression
+
+## 1. Network Pruning
+
+深度神经网络通常是参数过多了，通常我们可以修剪掉一部分的参数或者神经元。
+
+修剪流程：
+
+![image-20201011211233528](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201011211233528.png)
+
+如上图所示：
+
+1. 将神经网络的权重(衡量标准可以是L1，L2)排序
+2. 删减掉重要性低的权重
+3. 在训练数据上再进行训练
+4. 如果修建后的模型已经满足要求，则输出。否则，返回第一步。
+
+**注意：**不要一次修剪过多的参数，否则可能对模型伤害过大无法恢复。
+
+### 1.1 Weight pruning
+
+![image-20201011213650296](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201011213650296.png)
+
+修剪掉一些参数：但这样会使模型难以实现，同时也很难加速运算。
+
+### 1.2 Neuron pruning
+
+![image-20201011213834684](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201011213834684.png)
+
+修剪掉一些神经元是比较好的方法。方便实现，同时也方便进行加速运算。
+
+## 2. Knowledge Distillation
+
+知识蒸馏的原理是，在已经有的完备模型模型的基础上，构建一个简单模型。通过完备模型的输出来教简单模型。
+
+![image-20201011214527379](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201011214527379.png)
+
+以上图为例，完备模型不仅教简单模型当前看到的图片是1(因为识别是1的概率最大)，还教会简单模型，7和9与1形状相似(看到1时7和9也有一定概率输出)
+
+为了能够让完备模型教会简单模型更多东西，我们引入“**Temperature**”的概念：
+
+![image-20201011215226716](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201011215226716.png)
+
+通常在分类问题中，模型最后的输出要经过softmax转化为概率的分布。但当出现上图左边的情况时，复杂模型只能教会简单模型当前输出时$y_1$类。而我们引入一个温度参数$T$，在输出前首先除以温度参数，使不同类别更为接近，就能教给简单模型更多的知识(当前输入是$y_1$类，同时$y_1$类与$y_2,y_3$类较为相似)。
+
+## 3.Parameter Quantization
+
+![image-20201011220300129](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201011220300129.png)
+
+**Binary Weights:**
+
+![image-20201011221546889](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201011221546889.png)
+
+# Anomaly Detection
+
+异常检测：目的是让机器知道自己不知道。
+
+## 1. Problem Formulation
+
+我们给一个训练数据集 $\{x^1,x^2,...,x^N \}$，我们想要找到一个函数去检测输入的$x$是否与训练数据是相似的。
+
+![image-20201015164404474](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201015164404474.png)
+
+**直观想法：**
+
+获得正常数据normal data$\{x^1,x^2,...,x^N \}$
+
+获得异常数据anomal data $\left\{\tilde{x}^{1}, \tilde{x}^{2}, \cdots, \tilde{x}^{N}\right\}$
+
+然后训练一个二分类器
+
+**问题：**
+
+1. 异常数据太多，无法穷举。
+
+e.g.训练一个识别宝可梦的分类器，那么所有不是宝可梦的图片都是异常的
+
+2. 异常数据有时难以获得。
+
+## 2. How to use the Classifier
+
+![image-20201015184916786](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201015184916786.png)
+
+我们在原来训练的分类器的基础上，除了输出输入$x$对应的标签$y$，，还对这个$y$输出一个信心分数$c$。同时，我们定义一个阈值(threshold)$\lambda$，如果信心分数大于$\lambda$，则认为是正常的，否则是异常的。
+
+**Framework：**
+
+![image-20201015193125500](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201015193125500.png)
