@@ -959,3 +959,69 @@ e.g.训练一个识别宝可梦的分类器，那么所有不是宝可梦的图�
 **Framework：**
 
 ![image-20201015193125500](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201015193125500.png)
+
+# Unsupervised Learning
+
+在无监督学习中，有三种主要问题：
+
+1. Dimension Reduction（降维） （化繁为简）
+   ![image-20201020215547419](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201020215547419.png)
+2. Generation（无中生有）
+   ![image-20201020215619167](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201020215619167.png)
+
+3. Clustering（聚类）
+
+## Clustering
+
+### 1. K-means
+
+![image-20201020220259948](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201020220259948.png)
+
+K-means算法比较简单，就是初始化若干个中心点，每轮训练将每个样本都与其距离最近的中心点归为一类，而后更新中心点，直至算法收敛。
+
+**问题：**需要事先选定要聚为多少类。即，需要预先选定类别数$K$
+
+### 2. Hierarchical Agglomerative Clustering (HAC)
+
+![image-20201020220639979](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201020220639979.png)
+
+算法思路：初始状态将每个样本看成一类，而后每轮循环找到距离最近的两类将其归为一类，保留聚类过程。训练结束后所有样本都会被聚成一类。聚类过程如上图所示是一棵树。
+完成聚类后，可以通过选择$threshold$的方式，选择将原样本划分为多少类。
+e.g. 如果将距离根最近的那条线作为阈值进行划分，则原数据集被划分为两类。如果是第二近的那条线，则原数据集被划分为3类。
+
+## Dimension Reduction
+
+目标：找到一个函数，将原来的高维输入降到低维度
+
+![image-20201020221339249](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201020221339249.png)
+
+举例直观说明这种想法：
+
+![image-20201020221413017](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201020221413017.png)
+
+在MNIST识别手写数字数据集中，所有的图片是$28\times 28$维的，但并不是左右的的维度都用来表示数字。对于上图的五张图，可能使用一个用来表示角度的特征就可以进行区分。因此，可以对原来高维数据进行适当降维来降低运算的复杂度。
+
+### Principle component analysis (PCA) (主成分分析)
+
+#### 1.以一个二维数据为例说明PCA的目标
+
+![image-20201020222605930](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201020222605930.png)
+
+如上图所示，我们要在二维空间中找到一个维度（一个vector），将原数据集上的数据映射到这个vector上进行降维。如果没有施加限制，那么我们有无穷多种映射方法。
+但是，我们知道，为了使数据集含有更多的信息，我们应该尽可能将降维后的数据区分开。以上图为例，如果选择Small variance的那条向量，很多数据点映射后挤在一起，那么我们就会损失许多有用信息。因此，PCA就是要找出一条vector，使数据降维后，有最大的方差。转化成数学公式就是：
+$$
+Var(z_1)=\frac{1}{N}\sum_{z_z}(z_1-\overline{z_1})\\
+s.t. ||w^1||_2=1
+$$
+
+#### 2. 高维情况
+
+![image-20201020223614461](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201020223614461.png)
+
+扩展1.中的情况，如果我们的原数据是一个很高维度的数据，我们要对其降维。设我们降维后的向量组成的矩阵为$W$。对于第一维$w_1$，我们只需要求数据映射到本维度后方差最大即可。而对于后续维度，以$w_2$为例。除了要求数据映射到本维度后方差最大，还需限制本维度($w_2$)与之前的维度($w_!$)是正交(orthogonal)的。
+
+**解释：**如果不施加限制，显然我们找到的第二个维度与第一个维度一定是相同的。同时，限制$w_2$与$w_1$正交可以使降维后的各个维度之间是**不相关**的，**能够减少后续模型过拟合的风险。**
+
+后续维度$w_i$与上述分析相同。
+
+那么，最后我们得到的降维后的维度矩阵$W$，一定是一个**正交阵**(Orthogonal matrix)。
