@@ -1020,8 +1020,134 @@ $$
 
 扩展1.中的情况，如果我们的原数据是一个很高维度的数据，我们要对其降维。设我们降维后的向量组成的矩阵为$W$。对于第一维$w_1$，我们只需要求数据映射到本维度后方差最大即可。而对于后续维度，以$w_2$为例。除了要求数据映射到本维度后方差最大，还需限制本维度($w_2$)与之前的维度($w_!$)是正交(orthogonal)的。
 
-**解释：**如果不施加限制，显然我们找到的第二个维度与第一个维度一定是相同的。同时，限制$w_2$与$w_1$正交可以使降维后的各个维度之间是**不相关**的，**能够减少后续模型过拟合的风险。**
+**解释：**如果不施加限制，显然我们找到的第二个维度与第一个维度一定是相同的。同时，限制$w_2$与$w_1$正交可以使降维后的各个维度之间是**不相关**的，**能够降低后续模型过拟合的风险。**
 
 后续维度$w_i$与上述分析相同。
 
 那么，最后我们得到的降维后的维度矩阵$W$，一定是一个**正交阵**(Orthogonal matrix)。
+
+**数学推导：**
+
+设映射到的第一个维度为$w_1$，数据$x$映射到$w_1$后的数据集为$z_1$
+
+则$z_1=\frac{1}{N}\sum z_1 = \frac{1}{N}\sum w^1 \cdot x=w^1 \cdot \frac{1}{N} \sum{x} =w^1 \cdot \overline{x}$
+
+我们的目标是使$Var(z_1)$最大
+$$
+\begin{aligned}
+Var(z_1)&=\frac{1}{N} \sum_{z_1}(z_1-\overline{z_1})^2\\
+&=\frac{1}{N}\sum_{x} (w^1 \cdot x - w^1 \cdot \overline{z_1})^2\\
+&=\frac{1}{N}\sum (w^1 \cdot (x- \overline{x}))^2 ①\\
+&=\frac{1}{N}\sum(w^1)^T(x-\overline{x})(x-\overline{x})^Tw^1\\
+&=(w^1)^T\frac{1}{N}\sum(x-\overline{x})(x-\overline{x})^Tw^1\\
+&=(w^1)^TCov(x)w^1
+\end{aligned}
+$$
+①：$(a\cdot b)=(a^Tb)^2=a^Tba^Tb=a^Tb(a^Tb)^T=a^Tbb^Ta$
+
+令$S=Cov(x)$（协方差矩阵） 显然$S$是一个实对称矩阵
+
+那么我们的算法目标变为：
+$$
+w_1=\max_{w_1} (w^1)^TSw^1\\
+s.t. (w^1)^Tw^1=1
+$$
+只是一个优化问题，我们使用拉格朗日乘子法进行优化：
+
+![image-20201021094248946](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201021094248946.png)
+
+在优化的过程中我们可以发现，$w^1$是$S$对应的一个特征向量，$\alpha$是$w^1$对应的特征值。
+
+我们的优化目标变为最大化$\alpha$，那么显而易见，我们应该选择此时最大的特征值$\lambda_1$，其对应的特征向量就是我们要找的目标向量$w_1$
+
+同理我们求$w_2$，**同时对$w_2$施加与$w_1$正交的约束。**
+
+![image-20201021101206213](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201021101206213.png)
+
+而$(w^1)^TSw^2=((w^1)^TSw^2)^T=(w^2)^TS^Tw^1=(w^2)^TSw^1=\lambda_1(w^2)^Tw^1=0$
+
+同时$(w^2)^Tw^1=0$
+
+因此：
+
+![image-20201021101909019](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201021101909019.png)
+
+即，$\beta=0$
+
+则：
+
+![image-20201021102052625](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201021102052625.png)
+
+$w_3,w_4...w_k$推导同理。
+
+![image-20201021102739341](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201021102739341.png)
+
+由上图推导可得，PCA最终降维得到的$z$的协方差矩阵是一个对角阵，说明经过PCA后得到 的特征之间是没有相关性的。
+
+#### 3. 另一种观点的PCA
+
+![image-20201021103224425](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201021103224425.png)
+
+以MNIST识别手写数字为例，由上图都，每一个数字都可以看作是多个小的component($u^i$)组成的。那么，我们就可以用一个权值向量$c=[c_1 \ c_2 \ ... \ c_K]$来表示原图。
+
+此时，相当于我们将原来图片的高维向量进行降维，使用$u=[u_1 \ u_2 \ ... \ u_K]$来表示当前的特征。
+
+那么我们的优化目标就变为：
+
+![image-20201021104215318](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201021104215318.png)
+
+数学上可以证明，最后优化出的$u=[u_1 \ u_2 \ ... \ u_K]$与PCA得到的$w=[w_1 \ w_2 \ ... \ w_K]$是同一个向量。
+
+过程如下：
+
+![image-20201021105256819](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201021105256819.png)
+
+我们的目标是使右边相乘的矩阵与左边的矩阵$X$越接近越好。
+
+![image-20201021105552312](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201021105552312.png)
+
+而我们知道，对矩阵$X$使用奇异值分解(SVD)后得到的相乘矩阵是与A最接近的矩阵(相似程度取决于$K$的选取)。如上图所示，我们把$\Sigma V$看作上面的矩阵$C$，而后进行优化，最后即可得到矩阵$U$。
+
+#### 4. 使用神经网络
+
+PCA看起来像一个只有一个隐藏层(线性激活函数)的神经网络。
+
+![image-20201021110130583](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201021110130583.png)
+
+不过需要注意的是，该神经网络解出的结果与PCA的结果是不同的。**原因在于**PCA要求$w_i$之间是正交的，而该神经网络没有这个要求。
+
+#### 5. 应用例子
+
+##### 5.1 神奇宝贝
+
+![image-20201021110944575](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201021110944575.png)
+
+我们有800个宝可梦的样本，每个样本有6个feature。对其做特征值分解后，我们可以发现，前四个特征值占的比例较大。则我们可以认为前四个特征值对应的维度已经足够用来区分不同的宝可梦。
+
+那么我们分别将不同样本投影到着四个维度：
+
+![image-20201021111134693](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201021111134693.png)
+
+投影到这四个维度后，原来不同的特征会有不同的投影值，其中数值较大的说明本维度的影响较大。
+
+##### 5.2 MNIST
+
+![image-20201021111301972](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201021111301972.png)
+
+我们同样进行特征值分解后，取出影响最大的30个components。对其可视化后得到上图。
+
+我们发现，PCA得到的component不是我们想象中的一个个小的片段。每一个component都有完整的轮廓。
+
+这是因为，$w^i$的系数$a_i$可以取负值。举例来说，我们要组成一个数字9，那么我们可以先找到一个8，然后把多余的部分再删除掉。
+
+#### 6. PCA的缺点
+
+1. PCA算法是线性的，只能进行线性变换导致其对数据的变化能力较弱，可能使降维后的数据无法区分：
+
+![image-20201021111728982](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201021111728982.png)
+
+2. PCA是unpervised的，其只考虑了数据之间分布的方差。在某些问题上可能效果不是很好：
+
+   ![image-20201021111816541](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201021111816541.png)
+
+   对于上图中下面部分的图，可以使用有监督的LDA进行划分。
