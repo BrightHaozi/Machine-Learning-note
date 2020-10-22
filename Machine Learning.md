@@ -1151,3 +1151,91 @@ PCA看起来像一个只有一个隐藏层(线性激活函数)的神经网络。
    ![image-20201021111816541](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201021111816541.png)
 
    对于上图中下面部分的图，可以使用有监督的LDA进行划分。
+
+## Word Embedding
+
+机器可以在**没有监督**的情况下通过阅读大量文件来学习单词的意思。
+
+Word Embedding通常运用在自然语言处理领域，目的是用词向量表示词，同时相比于传统方法如1-of-N Encoding，可以实现降维。
+
+1-of-N Encoding，为了表示所有的单词，需要使用维度很高的词向量进行表示。且不同单词间的词向量是相互独立的，不能表示词义之间的联系。
+
+Word Class的方法将具有同样性质的word分簇成一个class。用word所属的class来表示word。但这种方法也缺少了一些信息。比如下图中就不能体现class1和class3在能否运动这个角度的联系。
+
+Word Embedding将单词project到一个高维空间（通常50-100维）中，在这个空间中能够很好地体现不同单词之间的联系，类似语义的词汇在word embedding的投影空间比较接近。同时其相比于1-of-N Encoding（通常上万维）维度也更低。
+
+![image-20201022090516004](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201022090516004.png)
+
+### Basic idea
+
+word embedding 的基本思想就是，每一个词汇的含义都可以根据它的上下文得到。
+
+### How to exploit the context
+
+#### 1.Count based
+
+我们用$V(w_i)$来表示单词$w_i$的词向量。`Count based`方法的是，在一个document中如果单词$w_i$和$w_j$总是同时出现，那么$V(w_i)$和$V(w_j)$将会很接近。
+
+举一个`Glove Vector`的例子：
+
+令$N_{i,j}$表示$w_i$和$w_j$在同一document中出现的次数，那么我们令$V(w_i)$和$V(w_j)$的内积$V(w_i)\cdot V(w_j)$与$N_{i,j}$越接近越好。
+
+#### 2. Prediction based
+
+##### 2.1 算法思想
+
+![image-20201022151841598](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201022151841598.png)
+
+给定若干单词$w_i，w_{i-1},...$，使用神经网络去预测$w_{i+1}$，使神经网络的输出结果与文中的真实输出越接近越好。
+
+##### 2.2 为什么可以这样做
+
+![image-20201022152113406](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201022152113406.png)
+
+如上图所示，我们使用$w_{i-1}$去预测$w_i$。输入的是$w_{i-1}$的1-of-N编码。
+
+假设两篇文章中分别有"张三去吃饭"，“李四去吃饭”。那么“张三”和“李四”就代表$w_{i-1}$，“去吃饭”代表$w_{i}$。我们希望神经网络输入两个不同的$w_{i-1}$后输出“去吃饭”的概率都是最高的。
+
+那么，为了使这两个不同的输入最终得到的输出相同，神经网络中就需要对输入做一些变换，将两个不同的vector投影到**位置相近的低维空间**上。这样在后续的预测工作中才能使其有相同输出的概率最大。
+
+那么，对于上图的例子，神经网络中第一层hidden layer所作的工作就是对输入的1-of-N编码进行降维，我们把其转换后的结果的$[z_1 \ z_2 \ ...]^T$拿出来，得到的就是单词1-of-N编码降维后的词向量。
+
+这样，我们可以在prediction based方法的model中控制第一层hidden layer的大小，从而控制目标降维空间的维度。
+
+##### 2.3 共享参数
+
+![image-20201022153755661](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201022153755661.png)
+
+由于现实世界中不同单词搭配情况过多，仅使用一个单词去预测下一个单词的效果往往是很差的。我们可以使用多个单词去预测下一个单词。
+
+这里我们以两个单词为例。如果是一般是神经网络，我们直接把$w_{i-2}$和$w_{i-1}$这两个vector拼接成一个更长的vector作为input即可。但这样会产生一个问题：把同一个word放在$w_{i-2}$的位置和放在$w_{i-1}$的位置，得到的Embedding结果是会不一样的。那么，如果把两组weight设置成相同（即共享参数），可以使$w_{i-2}$与$w_{i-1}$的相对位置不会对结果产生影响，同时可以有效减少参数量。
+
+由上图所示，$x_{i-2}$和$x_{i-1}$都是1-of-N编码的单词，$W_i$是用来进行降维的矩阵，$z$是降维后的结果。
+
+在没有进行参数共享时，降维的结果为
+$$
+z=W_1x_{i-2}+W_2x_{i-1}
+$$
+而我们强制令$W1=W2=W$
+
+则降维后的结果为
+$$
+z=W(x_{i-2}+x_{i-1})
+$$
+那么，当我们得到了这组参数$W$，就可以与1-of-N编码$x$相乘得到降维后的结果$z$。
+
+**如何实际用于训练：**
+
+- 首先在训练的时候就要给它们一样的初始值
+- 然后分别计算loss function $C$对$w_i$和$w_j$的偏微分，并对其进行更新 $$ w_i=w_i-\eta \frac{\partial C}{\partial w_i}\ w_j=w_j-\eta \frac{\partial C}{\partial w_j} $$ 这个时候你就会发现，$C$对$w_i$和$w_j$的偏微分是不一样的，这意味着即使给了$w_i$和$w_j$相同的初始值，更新过一次之后它们的值也会变得不一样，因此我们必须保证两者的更新过程是一致的，即： $$ w_i=w_i-\eta \frac{\partial C}{\partial w_i}-\eta \frac{\partial C}{\partial w_j}\ w_j=w_j-\eta \frac{\partial C}{\partial w_j}-\eta \frac{\partial C}{\partial w_i} $$
+- 这个时候，我们就保证了$w_i$和$w_j$始终相等：
+  - $w_i$和$w_j$的初始值相同
+  - $w_i$和$w_j$的更新过程相同
+
+并且，由于这个算法是unsupervised的，因此我们只需要存取大量的文章数据输入给神经网络即可。
+
+##### 2.4 多种变形
+
+使用不同位置的词汇去预测下一个词汇可以产生word embedding的多种变形：
+
+![image-20201022160159023](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201022160159023.png)
