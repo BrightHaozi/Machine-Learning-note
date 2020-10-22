@@ -1239,3 +1239,91 @@ $$
 使用不同位置的词汇去预测下一个词汇可以产生word embedding的多种变形：
 
 ![image-20201022160159023](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201022160159023.png)
+
+## Neighbor Embedding
+
+PCA和Word Embedding都是线性降维思想，而Neighbor Embedding介绍的是非线性的降维。
+
+### Manifold Learning
+
+![image-20201022161640062](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201022161640062.png)
+
+样本点的分布可能是在高维空间里的一个流行(Manifold)，也就是说，样本点其实是分布在低维空间里面，只是被扭曲地塞到了一个高维空间里。
+
+地球的表面就是一个流行(Manifold)，它是一个二维的平面，但是被塞到了一个三维空间里。
+
+在Manifold中，只有距离很近的点欧氏距离(Euclidean Distance)才会成立，而在下图的S型曲面中，欧氏距离是无法判断两个样本点的相似程度的。
+
+而Manifold Learning要做的就是把这个S型曲面降维展开，把塞在高维空间里的低维空间摊平，此时使用欧氏距离就可以描述样本点之间的相似程度。
+
+### Locally Linear Embedding(LLE)(局部线性嵌入)
+
+![image-20201022162818124](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201022162818124.png)
+
+算法思想：假设每一个$x_i$可以用它周围的点($x_j$)做linear combination得到。
+
+那么我们这个问题就转换成了，找一组使所有样本点与周围样本点线性组合的差距能够最小的参数$w_{i,j}$
+
+![image-20201022163604412](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201022163604412.png)
+
+LLE的具体做法如下：
+
+![image-20201022170421952](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201022170421952.png)
+
+- 在原先的高维空间中找到$x^i$和$x^j$之间的关系$w_{ij}$以后就把它固定住
+
+- 使$x^i$和$x^j$降维到新的低维空间上的$z^i$和$z^j$
+
+- $z^i$和$z^j$需要minimize下面的式子： $$ \sum\limits_i||z^i-\sum\limits_j w_{ij}z^j ||_2 $$
+
+  **即在原本的空间里，$x^i$可以由周围点通过参数$w_{ij}$进行线性组合得到，则要求在降维后的空间里，$z^i$也可以用同样的线性组合得到**
+
+实际上，LLE并没有给出明确的降维函数，它没有明确地告诉我们怎么从$x^i$降维到$z^i$，只是给出了降维前后的约束条件。
+
+在实际应用LLE的时候，对$x^i$来说，**需要选择合适的邻居点数目K**才会得到好的结果。
+
+### T-distributed Stochastic Neighbor Embedding (t-SNE) (t分布随机邻居嵌入)
+
+LLE只假设了相邻的点要接近，但没有假设不相近的点要分开。这就导致，虽然说同一个class的点会聚集在一起，但没法避免不同class的点重叠在一起。
+
+#### 1. 算法思想：
+
+![image-20201022171211558](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201022171211558.png)
+
+1. 在原数据$x$的分布空间上，计算**所有**$(x^i,x^j)$对的相似度$S(x^i,x^j)$
+
+2. 对其归一化：$P(x^j|x^i)=\frac{S(x^i,x^j)}{\sum_{k\ne i}S(x^i,x^k)}$
+
+3. 将$x$降维到$z$，同样计算相似度$s'(z^i,z^j)$，并作归一化：$Q(z^j|z^i)=\frac{S'(z^i,z^j)}{\sum_{k\ne i}S'(z^i,z^k)}$
+
+4. 利用`KL散度`来衡量分布$P,Q$的相似程度，目标是使其分布越接近越好。
+   $$
+   L=\sum\limits_i KL(P(|x^i)||Q(|z^i))\ =\sum\limits_i \sum\limits_jP(x^j|x^i)log \frac{P(x^j|x^i)}{Q(z^j|z^i)}
+   $$
+
+**注意：**归一化是有必要的，因为我们无法判断在$x$和$z$所在的空间里，$S(x^i,x^j)$与$S'(z^i,z^j)$的范围是否是一致的，需要将其映射到一个统一的概率区间。
+
+#### 2. t-SNE算法的使用
+
+因为t-SNE要为每一个pair都计算相似度，因此在原数据维度很高时，运算量非常巨大，通常不会直接使用。常用的方式是先使用PCA将输入集降到50维左右，而后再使用t-SNE降维到更低的目标维度。
+
+另外，在使用t-SNE时，如果给一个新的$x$，则需要重新再跑一遍算法，因此通常不直接将t-SNE用于训练。而是训练前先使用t-SNE可视化一下降维后数据的分布。
+
+#### 3. 相似函数的选择
+
+如果根据欧氏距离计算降维前的相似度，往往采用**RBF function** $S(x^i,x^j)=e^{-||x^i-x^j||_2}$，这个表达式的好处是，只要两个样本点的欧氏距离稍微大一些，相似度就会下降得很快
+
+还有一种叫做SNE的方法，它在降维后的新空间采用与上述相同的相似度算法$S'(z^i,z^j)=e^{-||z^i-z^j||_2}$
+
+对t-SNE来说，它在降维后的新空间所采取的相似度算法是与之前不同的，它选取了**t-distribution**中的一种，即$S'(z^i,z^j)=\frac{1}{1+||z^i-z^j||_2}$
+
+以下图为例，假设横轴代表了在原先$x$空间上的欧氏距离或者做降维之后在$z$空间上的欧氏距离，红线代表RBF function，是降维前的分布；蓝线代表了t-distribution，是降维后的分布
+
+你会发现，降维前后相似度从RBF function到t-distribution：
+
+- 如果原先两个点距离($\Delta x$)比较近，则降维转换之后，它们的相似度($\Delta y$)依旧是比较接近的
+- 如果原先两个点距离($\Delta x$)比较远，则降维转换之后，它们的相似度($\Delta y$)会被拉得更远
+
+![image-20201022172451292](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201022172451292.png)
+
+也就是说t-SNE可以聚集相似的样本点，同时还会放大不同类别之间的距离，从而使得不同类别之间的分界线非常明显。
