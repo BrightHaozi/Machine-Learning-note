@@ -1327,3 +1327,37 @@ LLE只假设了相邻的点要接近，但没有假设不相近的点要分开�
 ![image-20201022172451292](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201022172451292.png)
 
 也就是说t-SNE可以聚集相似的样本点，同时还会放大不同类别之间的距离，从而使得不同类别之间的分界线非常明显。
+
+## Auto-encoder
+
+### 1. 基本算法思路
+
+我们算法的目的是训练一个自动编码器，其能够将输入的数据进行自动编码，同时完成降维。
+
+![image-20201022173128370](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201022173128370.png)
+
+但是这样存在一个问题，我们的训练是无监督的，训练出的code没有目标，那么我们无法对神经网络进行优化。同理decoder也会遇到相同的问题。
+
+为了解决encoder和decoder不能单独训练的问题，那么我们就将encoder的decoder放在一起进行训练：
+
+![image-20201022173330551](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201022173330551.png)
+
+实际上PCA用到的思想与之非常类似，**PCA的过程本质上就是按组件拆分，再按组件重构的过程。**
+
+在PCA中，我们先把均一化后的$x$根据组件$W$分解到更低维度的$c$，然后再将组件权重$c$乘上组件的反置$W^T$得到重组后的$\hat x$，同样我们期望重构后的$\hat x$与原始的$x$越接近越好。
+
+我们此时的hidden layer $c$ 是encoder的输出，即编码后的结果。那么$c$的维度就是降维后的维度。同时，$c$又是decoder的输入，即可以用来构成输出图片的components，其直接决定了能够train出来的输出图片质量。因此也称hidden layer为瓶颈层(Bottleneck layer)。
+
+### 2. Deep Auto-encoder
+
+Auto-encoder并不一定是单层的，
+
+![image-20201022174850360](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20201022174850360.png)
+
+对deep的自编码器来说，实际上就是通过多级编码降维，再经过多级解码还原的过程
+
+此时：
+
+- 从input layer到bottleneck layer的部分都属于$Encoder$
+- 从bottleneck layer到output layer的部分都属于$Decoder$
+- bottleneck layer的output就是自编码结果$code$
