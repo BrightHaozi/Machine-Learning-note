@@ -41,7 +41,7 @@ class Activation_Net(nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
-        return
+        return x
 
     def get_name(self):
         return self.__class__.__name__
@@ -74,7 +74,7 @@ class Batch_Net(nn.Module):
 # 超参数
 batch_size = 64
 learning_rate = 1e-2
-num_epoches = 20
+num_epoches = 5
 
 # 数据预处理
 data_tf = transforms.Compose(
