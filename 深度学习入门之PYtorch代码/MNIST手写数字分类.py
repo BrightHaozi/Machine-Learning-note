@@ -89,14 +89,17 @@ data_tf = transforms.Compose(
 #     root='./data', train=True, transform=data_tf, download=True
 # )
 
+# 从文件中读出训练数据
 train_dataset = datasets.MNIST(
     root='./data', train=True, transform=data_tf
 )
 
+# 从文件中读出测试数据
 test_dataset = datasets.MNIST(
     root='./data', train=False, transform=data_tf
 )
 
+# 构造迭代器DataLoader，每次会自动读出batch_size量的数据
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
@@ -119,22 +122,24 @@ def train(net, train_data, valid_data, num_epoch, optimizer, criterion):
         for iter, data in enumerate(train_data):
             im, label = data
             im = im.view(im.size()[0], -1)
-            im = Variable(im)
+            im = Variable(im) # 转化成可以进行训练的张量
             # print(im.shape)
             label = Variable(label)
-            output = net(im)
-            loss = criterion(output, label)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            output = net(im)    # 执行一次前向传播，得到网络的输出
+            loss = criterion(output, label) # 计算网络的输出和真实值的损失
+            # ------------------- 优化过程
+            optimizer.zero_grad()   # 把梯度变为0
+            loss.backward() # 执行一次反向传播
+            optimizer.step()    # 进行一次优化
+            # -------------------
             _, pred_label = torch.max(output.data, 1)
             train_loss += loss.data
             temp_loss = loss.data
             # train_acc += torch.sum(pred_label == label.data)
-            train_acc += accuracy_score(label.data, pred_label) * label.size(0)
+            train_acc += accuracy_score(label.data, pred_label) * label.size(0) # 累计计算预测的准确率
 
             # temp_acc = (torch.sum(pred_label == label.data)) / label.size(0)
-            temp_acc = accuracy_score(label.data, pred_label)
+            temp_acc = accuracy_score(label.data, pred_label)   # 计算预测的准确率
             if iter % 300 == 0 and iter > 0:
                 print('Epoch {}/{},Iter {}/{} Loss: {:.4f},ACC:{:.4f}' \
                       .format(epoch, num_epoches - 1, iter, length, temp_loss, temp_acc))
