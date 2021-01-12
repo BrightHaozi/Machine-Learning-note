@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 import sklearn
 from sklearn.metrics import accuracy_score
+import matplotlib.pyplot as plt
 
 # 简单的三层全连接神经网络
 class simpleNet(nn.Module):
@@ -19,6 +20,7 @@ class simpleNet(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         return x
+
 
     def get_name(self):
         return self.__class__.__name__
@@ -113,6 +115,11 @@ model = [simpleNet(28 * 28, 300, 100, 10), Activation_Net(28 * 28, 300, 100, 10)
 
 # 训练过程
 def train(net, train_data, valid_data, num_epoch, optimizer, criterion):
+
+    trainAcc = []
+    EPOCH = []
+    # validAcc = []
+    count = 0
     print(net)
     length = len(train_data)
     for epoch in range(num_epoch):
@@ -140,7 +147,13 @@ def train(net, train_data, valid_data, num_epoch, optimizer, criterion):
 
             # temp_acc = (torch.sum(pred_label == label.data)) / label.size(0)
             temp_acc = accuracy_score(label.data, pred_label)   # 计算预测的准确率
+            count += 1
+            trainAcc.append(temp_acc)
+            EPOCH.append(count)
             if iter % 300 == 0 and iter > 0:
+                # count += 1
+                # trainAcc.append(temp_acc)
+                # EPOCH.append(count)
                 print('Epoch {}/{},Iter {}/{} Loss: {:.4f},ACC:{:.4f}' \
                       .format(epoch, num_epoches - 1, iter, length, temp_loss, temp_acc))
         if valid_data is not None:
@@ -163,9 +176,17 @@ def train(net, train_data, valid_data, num_epoch, optimizer, criterion):
                   .format(epoch, num_epoches - 1, train_loss, train_acc / 60000),
                   'valid_loss: {:.4f},valid_acc:{:.4f}'.format(valid_loss, valid_acc / 10000)
                   )
+    return EPOCH, trainAcc
 for m in model:
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
     print("the {} start traing...".format(m.get_name()))
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(m.parameters(), 1e-1)  # 使用随机梯度下降，学习率 0.1
-    train(m, train_loader, test_loader, num_epoches, optimizer, criterion)
+    x, y = train(m, train_loader, test_loader, num_epoches, optimizer, criterion)
+    ax.plot(x, y)
+    ax.set_xlabel('Iteration')
+    ax.set_ylabel('Training loss')
+    ax.set_title(m.get_name())
+    plt.show()
     print("the {} complete traing...".format(m.get_name()))
